@@ -1,0 +1,11 @@
+ChangeLog
+
+v1.2.1f1 - Build_003 
+--------------------
+- removed some more left over code from CSL ShowMoreLimits that didn't need to be in the dll.
+
+
+v1.2.1f1 - Build_001 
+--------------------
++ Initial release
+
