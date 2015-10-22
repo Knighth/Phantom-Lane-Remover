@@ -21,14 +21,14 @@ namespace PhantomLaneRemover
         internal const string MOD_DLL_NAME = "PhantomLaneRemover";
         internal const string MOD_DESCRIPTION = "Allows you to detect and remove phantom lanes.";
         internal static readonly string MOD_DBG_Prefix = "PhantomLaneRemover"; //same..for now.
-        internal const string VERSION_BUILD_NUMBER = "1.2.1-f1 build_003";
+        internal const string VERSION_BUILD_NUMBER = "1.2.1-f1 build_004";
         public static readonly string MOD_CONFIGPATH = "PhantomLaneRemover_Config.xml";
         
         public static bool IsEnabled = false;           //tracks if the mod is enabled.
         public static bool IsInited = false;            //tracks if we're inited
         public static bool IsGuiEnabled = false;        //tracks if the gui option is set.
         
-        public static float AutoRefreshSeconds = 3.0f;  //why are storing these here again and not just using mod.config? //oldcode.
+        public static float AutoRefreshSeconds = 3.0f;  //why am I storing these here again and not just using mod.config? //oldcode.
         public static bool UseAutoRefreshOption = false;
         public static Configuration config;
         private static bool isFirstEnable = true;
@@ -181,6 +181,12 @@ namespace PhantomLaneRemover
             Configuration.Serialize(MOD_CONFIGPATH, config);
         }
 
+        public static void UpdateAlternateKeyBinding(bool en)
+        {
+            config.UseAlternateKeyBinding = en;
+            Configuration.Serialize(MOD_CONFIGPATH, config);
+        }
+
 
         private void OnUseGuiToggle(bool en)
         {
@@ -229,6 +235,9 @@ namespace PhantomLaneRemover
                             case "Auto show on map load":
                                 cb[i].tooltip = "Enable the info panel to be shown automatically on map load.";
                                 break;
+                            case "Use alternate key-bindings":
+                                cb[i].tooltip = "Enable the alternate keybinding to show the panel\n Default alternate is left-control + left-alt + P\n You may set a custom binding in your config file if you like.";
+                                break;
                             default:
                                 break;
                         }
@@ -261,6 +270,7 @@ namespace PhantomLaneRemover
 
             UIHelperBase group = helper.AddGroup("PhantomLaneRemover");
             group.AddCheckbox("Auto show on map load", config.AutoShowOnMapLoad, UpdateUseAutoShowOnMapLoad);
+            group.AddCheckbox("Use alternate key-bindings", Mod.config.UseAlternateKeyBinding, UpdateAlternateKeyBinding);
             group.AddCheckbox("Enable Verbose Logging", DEBUG_LOG_ON, LoggingChecked);
             group.AddSpace(20);
            

@@ -22,7 +22,7 @@ namespace PhantomLaneRemover
         private const string sVALUE_FSTRING2 = "   {0}";
         private const string sVALUE_FSTRING3 = "   {0}    |    {1}";
         private static readonly float WIDTH = 600f;
-        private static readonly float HEIGHT = 350f;
+        private static readonly float HEIGHT = 400f;
         private static readonly float HEADER = 40f;
         private static readonly float SPACING = 10f;
         private static readonly float SPACING22 = 22f;
@@ -30,6 +30,8 @@ namespace PhantomLaneRemover
         private bool CoCheckStatsDataEnabled = false;   //These tell us if certain coroutine is running. 
         private bool CoDisplayRefreshEnabled = false;
 
+        private bool bUseAlternateKeys = false;
+        private Helper.KeycodeData AlternateBindingData;
         private object[] _tmpNetData;
         private object[] _tmpCitzData;
         private object[] _tmpotherdata;
@@ -53,16 +55,23 @@ namespace PhantomLaneRemover
         UILabel m_NetNodesValue;
         UILabel m_NetLanesText;
         UILabel m_NetLanesValue;
+        UILabel m_CitizenUnitsText;
+        UILabel m_CitizenUnitsValue;
+
         
         UILabel m_AdditionalText1Text;
         UIButton m_LogdataButton;
         UIButton m_ClearDataButton;
         UILabel m_MessageText;
+        UIButton m_CheckCitizenUnitsButton;
+        UIButton m_FixCitizenUnitsButton;
 
 //        private Stopwatch MyPerfTimer = new Stopwatch();
         private ItemClass.Availability CurrentMode;
         private int NumPhantomLanesDetected = 0;
         private int NumPhantomLanesRemoved = 0;
+        private int NumPhantomCUDetected = 0;
+        private int NumPhantomCURemoved = 0;
 
 
 
@@ -72,9 +81,26 @@ namespace PhantomLaneRemover
         /// </summary>
         public override void Update()
         {
-            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.P) && Input.GetKeyDown(KeyCode.L))
+            if (bUseAlternateKeys)
             {
-                this.ProcessVisibility();
+                if (AlternateBindingData.NumOfCodes == 2)
+                {
+                    if (Input.GetKey(AlternateBindingData.kCode1) && Input.GetKeyDown(AlternateBindingData.kCode2))
+                    { this.ProcessVisibility(); }
+                }
+                else
+                {
+                    if (Input.GetKey(AlternateBindingData.kCode1) && Input.GetKeyDown(AlternateBindingData.kCode2) && Input.GetKey(AlternateBindingData.kCode3))
+                    { this.ProcessVisibility(); }
+                }
+            }
+            else
+            {
+
+                if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.P) && Input.GetKeyDown(KeyCode.L))
+                {
+                    this.ProcessVisibility();
+                }
             }
             base.Update();
         }
@@ -129,28 +155,43 @@ namespace PhantomLaneRemover
         /// </summary>
         private void DoOnStartup()
         {
-            FetchMaxSizeLimitSizeData();
-            CreateTextLabels();
-            FetchValueLabelData();
-            CreateDataLabels();
-            NumPhantomLanesDetected = 0;
-            NumPhantomLanesRemoved = 0;
+            try
+            {
+                FetchMaxSizeLimitSizeData();
+                CreateTextLabels();
+                FetchValueLabelData();
+                CreateDataLabels();
+                NumPhantomLanesDetected = 0;
+                NumPhantomLanesRemoved = 0;
+                NumPhantomCUDetected = 0;
+                NumPhantomCURemoved = 0;
 
-//            RefreshDisplayData(); //fill'em up manually initially.
-            if (Mod.config.CheckStatsForLimitsEnabled)
-            {
-                this.StartCoroutine(CheckForStatsStatus());
-                if (Mod.DEBUG_LOG_ON) { Helper.dbgLog("CheckForStatsStatus coroutine started."); }
+                if (Mod.config.UseAlternateKeyBinding)
+                {
+                    AlternateBindingData = Configuration.getAlternateKeyBindings(Mod.config.AlternateKeyBindingCode);
+                    if (AlternateBindingData.NumOfCodes > 1) { bUseAlternateKeys = true; }
+                }
+
+                if (Mod.config.CheckStatsForLimitsEnabled)
+                {
+                    this.StartCoroutine(CheckForStatsStatus());
+                    if (Mod.DEBUG_LOG_ON) { Helper.dbgLog("CheckForStatsStatus coroutine started."); }
+                }
+                if (m_AutoRefreshCheckbox.isChecked)
+                {
+                    this.StartCoroutine(RefreshDisplayDataWrapper());
+                    if (Mod.DEBUG_LOG_ON) { Helper.dbgLog("RefreshDisplayDataWrapper coroutine started."); }
+                }
+                else
+                {
+                    RefreshDisplayData(); //at least run once.
+                }
             }
-            if (m_AutoRefreshCheckbox.isChecked)
+            catch (Exception ex)
             {
-                this.StartCoroutine(RefreshDisplayDataWrapper());
-                if (Mod.DEBUG_LOG_ON) { Helper.dbgLog("RefreshDisplayDataWrapper coroutine started."); }
+                Helper.dbgLog("GUI DoOnStarup failed.", ex, true);
             }
-            else
-            {
-                RefreshDisplayData(); //at least run once.
-            }
+
         }
 
         private void FetchMaxSizeLimitSizeData()
@@ -237,7 +278,7 @@ namespace PhantomLaneRemover
 
             m_NetSegmentsText = this.AddUIComponent<UILabel>();
             m_NetSegmentsText.text = string.Format("Net Segments     [{0}]]  |  [{1}]:", MaxsizesInt[0].ToString(), LimitsizesInt[0].ToString());
-            m_NetSegmentsText.tooltip = "You can think of segments as roads, but they are used for far more then just roads.\n Each segment is typically connected in a chain of other segments to a 'node'.";
+            m_NetSegmentsText.tooltip = "You can think of segments as road sections, but they are used for far more then just roads.\n Each segment is typically connected in a chain of other segments to a 'node'.";
             m_NetSegmentsText.relativePosition = new Vector3(SPACING, (m_HeaderDataText.relativePosition.y + SPACING22));
             m_NetSegmentsText.autoSize = true;
             m_NetSegmentsText.name = TAG_TEXT_PREFIX + "0";
@@ -246,20 +287,27 @@ namespace PhantomLaneRemover
             m_NetNodesText = this.AddUIComponent<UILabel>();
             m_NetNodesText.relativePosition = new Vector3(SPACING, (m_NetSegmentsText.relativePosition.y + SPACING22));
             m_NetNodesText.text = string.Format("Net Nodes     [{0}]  |  [{1}]:", MaxsizesInt[1].ToString(), LimitsizesInt[1].ToString());
-            m_NetNodesText.tooltip = "The number of Nodes. Think of nodes sort of like intersections, or the point that the first segment of a path connects too,\n each node typically contains zero or more segments.";
+            m_NetNodesText.tooltip = "The number of Nodes. Think of nodes sort of like intersections, or the point that the first segment of a path connects too,\n Each node typically contains zero or more segments.";
             m_NetNodesText.autoSize = true;
             m_NetNodesText.name = TAG_TEXT_PREFIX + "1";
 
             m_NetLanesText = this.AddUIComponent<UILabel>();
             m_NetLanesText.relativePosition = new Vector3(SPACING, (m_NetNodesText.relativePosition.y + SPACING22));
             m_NetLanesText.text = string.Format("Net Lanes     [{0}]  |  [{1}]:",MaxsizesInt[2].ToString(),LimitsizesInt[2].ToString()) ;
-            m_NetLanesText.tooltip = "The number of lanes. Lanes are used by more than just roads and rail.\n Things like ped.paths, bike paths, transportlines and similar things create and use them too.\nIt's not alway logical most roads with only two lanes by default get assigned six lanes,\n so they can be upgraded later I presume.";
+            m_NetLanesText.tooltip = "The number of lanes. Lanes are used by more than just roads and rail.\n Things like ped.paths, bike paths, transportlines and similar things create and use them too.\nIt's not alway logical,most roads with only two lanes by default will get assigned six lanes,\n These account sidewalks and other such 'lanes' types";
             m_NetLanesText.autoSize = true;
             m_NetLanesText.name = TAG_TEXT_PREFIX + "2";
 
+            m_CitizenUnitsText = this.AddUIComponent<UILabel>();
+            m_CitizenUnitsText.relativePosition = new Vector3(SPACING, (m_NetLanesText.relativePosition.y + SPACING22));
+            m_CitizenUnitsText.text = string.Format("Citizen Units     [{0}]  |  [{1}]:", MaxsizesInt[8].ToString(), LimitsizesInt[8].ToString());
+            m_CitizenUnitsText.tooltip = "The number of Citizen Units.\nCitizen units are used to group,transport, and otherwise account for citizens moving around your city.\n For instance there will be more or one CU per vehicle, the more passengers the more CU's.";
+            m_CitizenUnitsText.autoSize = true;
+            m_CitizenUnitsText.name = TAG_TEXT_PREFIX + "3";
+
             
             m_AutoRefreshCheckbox = this.AddUIComponent<UICheckBox>();
-            m_AutoRefreshCheckbox.relativePosition = new Vector3((SPACING), (m_NetLanesText.relativePosition.y + 30f));
+            m_AutoRefreshCheckbox.relativePosition = new Vector3((SPACING), (m_CitizenUnitsText.relativePosition.y + 30f));
 
             m_AutoRefreshChkboxText = this.AddUIComponent<UILabel>();
             m_AutoRefreshChkboxText.relativePosition = new Vector3(m_AutoRefreshCheckbox.relativePosition.x + m_AutoRefreshCheckbox.width + (SPACING * 3), (m_AutoRefreshCheckbox.relativePosition.y) + 5f);
@@ -302,13 +350,13 @@ namespace PhantomLaneRemover
             m_AdditionalText1Text.textScale = 0.875f;
             //m_AdditionalText1Text.autoSize = true;
             //m_AdditionalText1Text.wordWrap = true;
-            m_AdditionalText1Text.text = "* Use CTRL + P + L to show again. \n  More options available in PhantomLaneRemover_Config.xml";
+            m_AdditionalText1Text.text = "* Use CTRL + (P & L) to show again. \n  More options available in PhantomLaneRemover_Config.xml";
 
             m_refresh = this.AddUIComponent<UIButton>();
             m_refresh.size = new Vector2(120, 24);
             m_refresh.text = "Manual Refresh";
             m_refresh.tooltip = "Use to manually refresh the data. \n (use when auto enabled is off)";
-            m_refresh.textScale = 0.875f;
+            m_refresh.textScale = 0.800f;
             m_refresh.normalBgSprite = "ButtonMenu";
             m_refresh.hoveredBgSprite = "ButtonMenuHovered";
             m_refresh.pressedBgSprite = "ButtonMenuPressed";
@@ -348,10 +396,37 @@ namespace PhantomLaneRemover
             m_ClearDataButton.eventClick += (component, eventParam) => { ProcessOnCopyButton(); };
             m_ClearDataButton.isVisible = false;
 
+
+            m_CheckCitizenUnitsButton  = this.AddUIComponent<UIButton>();
+            m_CheckCitizenUnitsButton.size = new Vector2(200, 34);
+            m_CheckCitizenUnitsButton.text = "Detect Phantom CitizenUnits";
+            m_CheckCitizenUnitsButton.tooltip = "Use to detect and log information about any phantom CitizenUnits in your map.";
+            m_CheckCitizenUnitsButton.textScale = 0.875f;
+            m_CheckCitizenUnitsButton.normalBgSprite = "ButtonMenu";
+            m_CheckCitizenUnitsButton.hoveredBgSprite = "ButtonMenuHovered";
+            m_CheckCitizenUnitsButton.pressedBgSprite = "ButtonMenuPressed";
+            m_CheckCitizenUnitsButton.disabledBgSprite = "ButtonMenuDisabled";
+            m_CheckCitizenUnitsButton.relativePosition = m_LogdataButton.relativePosition + new Vector3(0f, 40f);
+            m_CheckCitizenUnitsButton.eventClick += (component, eventParam) => { ProcessCheckCUButton(); };
+
+            m_FixCitizenUnitsButton = this.AddUIComponent<UIButton>();
+            m_FixCitizenUnitsButton.size = new Vector2(120, 34);
+            m_FixCitizenUnitsButton.text = "Fix CitizenUnits";
+            m_FixCitizenUnitsButton.tooltip = "Use to actually clean up the phantom CitizenUnits.";
+            m_FixCitizenUnitsButton.textScale = 0.800f;
+            m_FixCitizenUnitsButton.normalBgSprite = "ButtonMenu";
+            m_FixCitizenUnitsButton.hoveredBgSprite = "ButtonMenuHovered";
+            m_FixCitizenUnitsButton.pressedBgSprite = "ButtonMenuPressed";
+            m_FixCitizenUnitsButton.disabledBgSprite = "ButtonMenuDisabled";
+            m_FixCitizenUnitsButton.relativePosition = m_CheckCitizenUnitsButton.relativePosition + new Vector3((m_CheckCitizenUnitsButton.width + SPACING * 3), 0f);
+            m_FixCitizenUnitsButton.eventClick += (component, eventParam) => { ProcessFixCUButton(); };
+            m_FixCitizenUnitsButton.isVisible = false;
+
             m_MessageText = this.AddUIComponent<UILabel>();
-            m_MessageText.relativePosition = m_LogdataButton.relativePosition + new Vector3(0f, SPACING22 * 2);
+            m_MessageText.relativePosition = m_CheckCitizenUnitsButton.relativePosition + new Vector3(0f, SPACING22 * 2);
             m_MessageText.text = "Detection results";
-            m_MessageText.tooltip = "The results of a the last phantom lane detection button press.";
+            m_MessageText.textScale = 0.875f;
+            m_MessageText.tooltip = "The results of a the last phantom lane or citizen unit detection button press.";
             m_MessageText.autoSize = true;
             m_MessageText.name = TAG_TEXT_PREFIX + "4";
 
@@ -459,10 +534,11 @@ namespace PhantomLaneRemover
             isRefreshing = true; //safety lock so we never get more then one of these, probably don't need after co-routine refactor.
             try
             {
-                
-                m_NetSegmentsValue.text = string.Format(sVALUE_FSTRING1, _tmpNetData[0], _tmpNetData[1]);
-                m_NetNodesValue.text = string.Format(sVALUE_FSTRING1, _tmpNetData[2], _tmpNetData[3]);
-                m_NetLanesValue.text = string.Format(sVALUE_FSTRING1, _tmpNetData[4], _tmpNetData[5]);
+
+                m_NetSegmentsValue.text = String.Format(sVALUE_FSTRING1, _tmpNetData[0], _tmpNetData[1]);
+                m_NetNodesValue.text = String.Format(sVALUE_FSTRING1, _tmpNetData[2], _tmpNetData[3]);
+                m_NetLanesValue.text = String.Format(sVALUE_FSTRING1, _tmpNetData[4], _tmpNetData[5]);
+                m_CitizenUnitsValue.text = String.Format(sVALUE_FSTRING2, _tmpCitzData[1]);
 
                 if (Mod.DEBUG_LOG_ON & Mod.DEBUG_LOG_LEVEL >= 3) Helper.dbgLog("Refreshing display data completed. " + DateTime.Now.ToString(DTMilli));
             }
@@ -489,6 +565,7 @@ namespace PhantomLaneRemover
                 m_NetSegmentsValue.textColor  = isWithin10Percent(int.Parse(_tmpNetData[0].ToString()), (int)LimitsizesInt[0], 0.1f) ? cOrange : cGreen;
                 m_NetNodesValue.textColor = isWithin10Percent(int.Parse(_tmpNetData[2].ToString()), (int)LimitsizesInt[1]) ? cOrange : cGreen;
                 m_NetLanesValue.textColor = isWithin10Percent(int.Parse(_tmpNetData[4].ToString()), (int)LimitsizesInt[2]) ? cOrange : cGreen;
+                m_CitizenUnitsValue.textColor = isWithin10Percent(int.Parse(_tmpCitzData[1].ToString()), (int)LimitsizesInt[8]) ? cOrange : cGreen;
                 if (Mod.DEBUG_LOG_ON & Mod.DEBUG_LOG_LEVEL >= 2)
                 {
                     Helper.dbgLog("Completed CheckStatsForColorChange. " + DateTime.Now.ToString(DTMilli));
@@ -534,6 +611,11 @@ namespace PhantomLaneRemover
             m_NetLanesValue.text = sVALUE_PLACEHOLDER;
             m_NetLanesValue.name = TAG_VALUE_PREFIX + "2";
 
+            m_CitizenUnitsValue = this.AddUIComponent<UILabel>();
+            m_CitizenUnitsValue.relativePosition = new Vector3(m_NetLanesValue.relativePosition.x, m_CitizenUnitsText.relativePosition.y);
+            m_CitizenUnitsValue.autoSize = true;
+            m_CitizenUnitsValue.text = sVALUE_PLACEHOLDER;
+            m_CitizenUnitsValue.name = TAG_VALUE_PREFIX + "3";
         }
 
         /// <summary>
@@ -557,6 +639,11 @@ namespace PhantomLaneRemover
             if (NumPhantomLanesDetected == 0)
             { m_ClearDataButton.isVisible = false; }
             else { m_ClearDataButton.isVisible = true; }
+
+            if(NumPhantomCUDetected == 0)
+            {m_FixCitizenUnitsButton.isVisible = false;}
+            else
+            {m_FixCitizenUnitsButton.isVisible = true;}
         
         }
 
@@ -596,7 +683,39 @@ namespace PhantomLaneRemover
             }
             m_MessageText.text = String.Format("There were {0} phantom lanes detected. " + (NumPhantomLanesDetected > 0 ? "Press 'Fix Lanes' to correct.":""), NumPhantomLanesDetected.ToString());
         }
-        
+
+
+        private void ProcessCheckCUButton()
+        {
+            NumPhantomCUDetected = 0;
+            NumPhantomCUDetected = Helper.LogAndFixCitizenUnits();
+            if(NumPhantomCUDetected > 0 )
+            {
+                m_FixCitizenUnitsButton.isVisible = true;
+                m_MessageText.textColor = new Color32(255,204,0,255); //yellowish
+            }
+            else
+            { 
+                m_MessageText.textColor = new Color32(0, 204, 0, 255); //greenish
+            }
+            m_MessageText.text = String.Format("There were {0} phantom CitizenUnits detected. " + (NumPhantomCUDetected > 0 ? "Press 'Fix CitizenUnits' to correct.":""), NumPhantomCUDetected.ToString());
+
+        }
+        private void ProcessFixCUButton()
+        {
+            try
+            {
+                NumPhantomCURemoved = Helper.LogAndFixCitizenUnits(true);
+                NumPhantomCUDetected = 0;
+                m_FixCitizenUnitsButton.isVisible = false;
+                m_MessageText.textColor = new Color32(0, 204, 0, 255); //greenish
+                m_MessageText.text = String.Format("{0} phantom CitizenUnits were successfully cleaned up. Save this cleaned version.", NumPhantomCURemoved.ToString());
+            }
+            catch (Exception ex)
+            {
+                Helper.dbgLog("Error while clearing Citizen Units.", ex, true);
+            }
+        }
 
     }
 }

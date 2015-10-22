@@ -1,6 +1,6 @@
 
 Phantom Lane Remover
-v1.2.1_Build003
+v1.2.1_Build004
 
 Purpose
 ------------
@@ -24,6 +24,8 @@ Step 2: (skipable) Look at your lane #'s, are they higher then figure you came u
 Step 3: Press "Detect Phantom Lanes" - If the message says in green it detected 0 phantoms. You don't have the problem. If says in yellow'ish it detected ###### phantom lanes, and shows a "Fix Lanes" button then you have the problem. 
 Step 4: The "Fix Lanes" button should exist, (Now would be a good time to backup your map!), now press it. 
 Step 5: After a few seconds it should tell you in green how many lanes it cleaned up, the lane # shown in the counter list should reflect the change. You're done, save the now cleaned version of the map and go on about your game.
+
+Repeat this process if you want to check CitizenUnits.
 
 Questions
 ------------

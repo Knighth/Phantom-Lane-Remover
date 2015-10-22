@@ -1,5 +1,12 @@
 ChangeLog
 
+v1.2.1f1 - Build_004 
+--------------------
++ Added ability to remove phantom Citizen Units as well. Thanks to IPT mod author DontCryJustDie,for letting me know AVO creates some of these and tipping me off that IPT implements a fix for this already upon load.
++ Added ability to set alternate key bindings
+
+
+
 v1.2.1f1 - Build_003 
 --------------------
 - removed some more left over code from CSL ShowMoreLimits that didn't need to be in the dll.

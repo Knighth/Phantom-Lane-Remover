@@ -15,25 +15,15 @@ namespace PhantomLaneRemover
 {
     public class Helper
     {
-/*        public class ExternalData
+        public struct KeycodeData
         {
-            public bool CoDataRefreshEnabled=false;
-            public bool CoDisplayRefreshEnabled=false;
-            public string cachedname ="n/a";
-            public string name= "n/a";
-            public string tag = "n/a";
-            public bool isVisable;
-            public bool isAutoRefreshActive;
-
-            public object[] ToStringArray() 
-            {
-                object[] tmpStrArr = new object[] { name.ToString(), cachedname.ToString(),
-                 tag.ToString(), isAutoRefreshActive.ToString(), isVisable.ToString(),
-                CoDataRefreshEnabled.ToString(),CoDisplayRefreshEnabled.ToString(), };
-                return tmpStrArr;
-            }
+            public byte NumOfCodes;
+            public KeyCode kCode1;
+            public KeyCode kCode2;
+            public KeyCode kCode3;
         }
 
+/*
         [Flags]
         public enum DumpOption : byte
         {
@@ -208,6 +198,128 @@ namespace PhantomLaneRemover
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bREMOVE"> flag to trigger actual removal</param>
+        /// <returns></returns>
+        internal static int LogAndFixCitizenUnits(bool bREMOVE = false)
+        {
+            uint i = 1;
+            StringBuilder cuSB;
+            if (bREMOVE & Mod.DEBUG_LOG_ON)
+            { cuSB = new StringBuilder(524288); }
+            else
+            { cuSB = new StringBuilder(4096); }
+
+            try
+            {
+                int tmpCitizenUnitsCreated = 0;
+                int tmpCitizenUnitsWithLinks = 0;
+                int tmpCitizenUnitsWithoutLinks = 0;
+                int tmpCitizenUnitsWithBadLinks = 0;
+                int tmpCitizenUnitsReleased = 0;
+                CitizenManager cm = Singleton<CitizenManager>.instance;
+                VehicleManager vm = Singleton<VehicleManager>.instance;
+                BuildingManager bm = Singleton<BuildingManager>.instance;
+                bool bFlag = false;
+
+                cuSB.AppendLine("\r\n-------- Begin Citizen Unit Data ----------");
+                for (i = 1; i < cm.m_units.m_buffer.Length; i++)
+                {
+                    bFlag = false;
+                    if ((cm.m_units.m_buffer[i].m_flags & CitizenUnit.Flags.Created) == CitizenUnit.Flags.Created)
+                    {
+                        tmpCitizenUnitsCreated++;
+                        CitizenUnit cu = cm.m_units.m_buffer[i];
+                        if (cu.m_building == 0 && cu.m_goods == 0 && cu.m_vehicle == 0)
+                        {
+                            tmpCitizenUnitsWithoutLinks++;
+                            if (bREMOVE)
+                            {
+                                if (Mod.DEBUG_LOG_ON)
+                                { cuSB.AppendLine(string.Concat("Releasing citizen unit number: ",i)); }
+                                cm.m_units.m_buffer[i] = default(CitizenUnit);
+                                cm.ReleaseUnits(i);
+                                cm.m_unitCount = (int)(cm.m_units.ItemCount() - 1u);
+                                tmpCitizenUnitsReleased++;
+                            }
+                        }
+                        else
+                        {
+                            tmpCitizenUnitsWithLinks++;
+                            if (cu.m_building > 0) 
+                            {
+                                if (!isBuildingCreated(bm, cu.m_building))
+                                {
+                                    tmpCitizenUnitsWithBadLinks++;
+                                    continue;
+                                }
+ 
+                            }
+
+                            if (cu.m_vehicle > 0)
+                            {
+                                if (!isVehicleCreated(vm, cu.m_vehicle))
+                                {
+                                    tmpCitizenUnitsWithBadLinks++;
+                                    continue;
+                                }
+                            }
+                            if (bFlag && Mod.DEBUG_LOG_ON)
+                            { cuSB.AppendLine(string.Concat("Citizen unit number: ", i," is linked to vehc or bldg that is not created.")); }
+
+                        }
+
+                    }
+ 
+                }
+                cuSB.AppendLine(string.Format("There were {0} Citizen Units marked as created.",tmpCitizenUnitsCreated.ToString()));
+                cuSB.AppendLine(string.Format("There were {0} Citizen Units marked as having links to other objects.",tmpCitizenUnitsWithLinks.ToString()));
+                cuSB.AppendLine(string.Format("There were {0} Citizen Units marked as having links to *NO* objects.", tmpCitizenUnitsWithoutLinks.ToString()));
+                cuSB.AppendLine(string.Format("There were {0} Citizen Units marked as having links to objects that are not created themselves.", tmpCitizenUnitsWithBadLinks.ToString()));
+                if (bREMOVE)
+                {
+                    cuSB.AppendLine(string.Format("Of the {0} Citizen Units that had NO objects, {1} were successfully reset and released.",tmpCitizenUnitsWithoutLinks.ToString(), tmpCitizenUnitsReleased.ToString()));
+                }
+
+                cuSB.AppendLine("\r\n-------- End CitizenUnit Data ----------");
+                dbgLog(cuSB.ToString());
+                if(bREMOVE)
+                {
+                    return tmpCitizenUnitsReleased;
+                }
+                else
+                {
+                    return tmpCitizenUnitsWithoutLinks;
+
+                }
+ 
+            }
+            catch (Exception ex)
+            { Helper.dbgLog("Error in reviewing CitizenUnit data: " + i.ToString()+"\r\n" + cuSB.ToString(), ex, true); }
+            return 0;
+        }
+
+
+        private static bool isBuildingCreated(BuildingManager bMgr, ushort iBuildingIndex)
+        {
+            if ((bMgr.m_buildings.m_buffer[iBuildingIndex].m_flags & Building.Flags.Created) == Building.Flags.Created)
+            {
+                return true;
+            }
+            return false;
+ 
+        }
+
+        private static bool isVehicleCreated(VehicleManager vMgr, ushort iVehicleIndex)
+        {
+            if ((vMgr.m_vehicles.m_buffer[iVehicleIndex].m_flags & Vehicle.Flags.Created) == Vehicle.Flags.Created )
+            {
+                return true;
+            }
+            return false;
+        }
 
         private static bool isSegmentCreated(NetManager nMgr, ushort iSegmentIndex) 
         {
@@ -338,6 +450,10 @@ namespace PhantomLaneRemover
             {
                 Debug.Log(string.Concat("[CSLShowMoreLimits.Helper.dbgLog()] Error in log attempt!  ", Exp.Message.ToString()));
             }
+            logSB.Length = 0;
+            if (logSB.Capacity > 8192)
+            { logSB.Capacity = 4096; }
+
         }
     }
 
