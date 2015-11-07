@@ -210,11 +210,11 @@ namespace PhantomLaneRemover
                 Singleton<TreeManager>.instance.m_trees.m_size,Singleton<PropManager>.instance.m_props.m_size};
 
                 LimitsizesInt = new object[]{
-                CheckMode() ? (int)32256 : (int)16384,
+                CheckMode() ? (int)36352 : (int)16384,
                 CheckMode() ? (int)32256 : (int)16384,
                 CheckMode() ? (int)258048 : (int)131072, //lanes
-                CheckMode() ? (int)32256 : (int)8192, //build
-                CheckMode() ? (int)32256 : (int)16384, //zoneblk
+                CheckMode() ? (int)48640 : (int)8192, //build
+                CheckMode() ? (int)48640 : (int)16384, //zoneblk
                 (int)16384, //vehc
                 (int)32767, //parked
                 (int)1048575, //cit

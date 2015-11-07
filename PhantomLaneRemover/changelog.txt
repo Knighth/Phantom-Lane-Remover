@@ -1,4 +1,7 @@
 ChangeLog
+v1.2.2f2 - Build_001
+---------------------
+Minor tweak for latest CO\Patch, updated for newer limits for certain objects.
 
 v1.2.1f1 - Build_004 
 --------------------
