@@ -1,6 +1,6 @@
 ﻿using ColossalFramework;
 using ColossalFramework.Plugins;
-using ColossalFramework.Steamworks;
+using ColossalFramework.PlatformServices;
 using ColossalFramework.UI;
 using ICities;
 using System;
@@ -21,7 +21,7 @@ namespace PhantomLaneRemover
         internal const string MOD_DLL_NAME = "PhantomLaneRemover";
         internal const string MOD_DESCRIPTION = "Allows you to detect and remove phantom lanes.";
         internal static readonly string MOD_DBG_Prefix = "PhantomLaneRemover"; //same..for now.
-        internal const string VERSION_BUILD_NUMBER = "1.2.1-f1 build_004";
+        internal const string VERSION_BUILD_NUMBER = "1.6.0-f4 build_004";
         public static readonly string MOD_CONFIGPATH = "PhantomLaneRemover_Config.xml";
         
         public static bool IsEnabled = false;           //tracks if the mod is enabled.

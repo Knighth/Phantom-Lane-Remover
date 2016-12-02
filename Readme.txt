@@ -1,6 +1,6 @@
 
 Phantom Lane Remover
-v1.2.2_Build001
+v1.6.0_Build001
 
 Purpose
 ------------
