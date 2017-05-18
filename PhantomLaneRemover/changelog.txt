@@ -1,4 +1,14 @@
 ChangeLog
+
+v1.7.0f5 - build_001
+----
+Just recompiled for v1.7 dlls, no changes.
+
+v1.3.0f2 - build_001
+----
+Compiled against Snowfall update dlls.
+
+
 v1.2.2f2 - Build_001
 ---------------------
 Minor tweak for latest CO\Patch, updated for newer limits for certain objects.

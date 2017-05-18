@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("PhantomLaneRemover")]
-[assembly: AssemblyDescription("v1.6.0-f4 build_001")]
+[assembly: AssemblyDescription("v1.7.0-f5 build_001")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PhantomLaneRemover")]
-[assembly: AssemblyCopyright("Copyright ©  2015 v1.6.0-f4 build_001")]
+[assembly: AssemblyCopyright("Copyright ©  2015 v1.7.0-f5 build_001")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -33,5 +33,5 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.3.0")]
-[assembly: AssemblyFileVersion("1.0.6.0")]
-[assembly: AssemblyInformationalVersion("v1.6.0-f4 build_001")]
+[assembly: AssemblyFileVersion("1.0.7.0")]
+[assembly: AssemblyInformationalVersion("v1.7.0-f5 build_001")]
